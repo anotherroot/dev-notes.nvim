@@ -1,0 +1,66 @@
+- BUG: if there is no dev-notes.json file, create one
+- make notes versioned by git
+  - this would add a history to the notes (so you could trust that you wount loose anything)
+  - you coudl share with mutliple computers (could merge them) 
+  - Maybe i could make these notes into files. so each project gets a seperate file (maybe based on some hash) or maybe i have the file location stored in the .json file
+- do history of notes
+  - so each note would have a history  of all changes so i could find things 
+  - telescope integration for histories of the file
+
+- lahko bi dodal dodatni binding ki odpre zapisek ob strani (mogoce na desni strani)
+
+- dodaj to ce bi hotu verticly splitat, da bi imel zapiske ob strani ali kaj takega
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "devnotes",
+  group = dev_notes_root,
+  callback = function()
+    log.trace("FileType devnotes(): in init.lua")
+    -- TODO: figure out how this works
+    -- -- Open harpoon file choice in useful ways
+    -- --
+    -- --
+    -- -- vertical split (control+v)
+    -- vim.keymap.set("n", "<C-V>", function()
+    --   local curline = vim.api.nvim_get_current_line()
+    --   local working_directory = vim.fn.getcwd() .. "/"
+    --   vim.cmd("vs")
+    --   vim.cmd("e " .. working_directory .. curline)
+    -- end, { buffer = true, noremap = true, silent = true })
+    --
+    -- -- horizontal split (control+x)
+    -- vim.keymap.set("n", "<C-x>", function()
+    --   local curline = vim.api.nvim_get_current_line()
+    --   local working_directory = vim.fn.getcwd() .. "/"
+    --   vim.cmd("sp")
+    --   vim.cmd("e " .. working_directory .. curline)
+    -- end, { buffer = true, noremap = true, silent = true })
+    --
+    -- -- new tab (control+t)
+    -- vim.keymap.set("n", "<C-t>", function()
+    --   local curline = vim.api.nvim_get_current_line()
+    --   local working_directory = vim.fn.getcwd() .. "/"
+    --   vim.cmd("tabnew")
+    --   vim.cmd("e " .. working_directory .. curline)
+    -- end, { buffer = true, noremap = true, silent = true })
+  end,
+})
+
+local dev_notes_root =
+    vim.api.nvim_create_augroup("DEV_NOTES_ROOT", { clear = true })
+
+
+- TODO: this 
+---@mod dev-notes.config Configuration
+---@tag dev-notes.config.defaults
+---@brief [[
+---Following is the default config for the |dev-notes.usage.setup|. If you want to
+---override, just modify the option that you want, then it will be merged with the
+---default config.
+--->lua
+---  {
+---      local_save = false,
+---  }
+---<
+---@brief ]]
+---TODO: check what this |dev-notes.usage.setup| is?
+
