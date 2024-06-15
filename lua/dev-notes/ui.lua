@@ -26,6 +26,7 @@ end
 
 local function create_window()
     log.trace("create_window()")
+
     local config = Config.get().quick_notes
     local width = config.width or 60
     local height = config.height or 10
@@ -65,8 +66,6 @@ local function get_quick_note_lines()
     return lines
 end
 
----Toggle quick note
----@return nil #Returns nil
 function UI.toggle_quick_note()
     log.trace("ui.toggle_quick_note()")
     if win_id ~= nil and vim.api.nvim_win_is_valid(win_id) then
@@ -83,6 +82,60 @@ function UI.toggle_quick_note()
     local contents = note_data.lines
 
     local cursor = note_data.cursor
+
+    vim.api.nvim_set_option_value("number", true, { win = win_id })
+    vim.api.nvim_buf_set_name(buf_id, "dev-notes-menu")
+    vim.api.nvim_buf_set_lines(buf_id, 0, #contents, false, contents)
+    vim.api.nvim_set_option_value("filetype", "devnotes", { buf = buf_id })
+    vim.api.nvim_set_option_value("buftype", "acwrite", { buf = buf_id })
+    vim.api.nvim_set_option_value("bufhidden", "delete", { buf = buf_id })
+
+    if cursor[1] ~= 0 then
+        vim.api.nvim_win_set_cursor(win_id, cursor)
+    end
+
+    vim.cmd(
+        string.format(
+            "autocmd BufWriteCmd <buffer=%s> lua require('dev-notes.ui').on_quick_notes_save()",
+            buf_id
+        )
+    )
+    if Config.get().quick_notes.save_on_edit then
+        vim.cmd(
+            string.format(
+                "autocmd TextChanged,TextChangedI <buffer=%s> lua require('dev-notes.ui').on_quick_notes_save()",
+                buf_id
+            )
+        )
+    end
+    vim.cmd(
+        string.format(
+            "autocmd BufModifiedSet <buffer=%s> set nomodified",
+            buf_id
+        )
+    )
+    vim.cmd(
+        "autocmd BufLeave <buffer> ++nested ++once silent lua require('dev-notes.ui').toggle_quick_note()"
+    )
+
+    log.trace("toggle_quick_note(): End")
+end
+
+function UI.toggle_quick_note_test()
+    log.trace("ui.toggle_quick_note_test()")
+    if win_id ~= nil and vim.api.nvim_win_is_valid(win_id) then
+        close_menu()
+        return
+    end
+
+    local win_info = create_window()
+
+    win_id = win_info.win_id
+    buf_id = win_info.bufnr
+
+    local contents = Note.read_file("test")
+
+    local cursor = { 1, 0 }
 
     vim.api.nvim_set_option_value("number", true, { win = win_id })
     vim.api.nvim_buf_set_name(buf_id, "dev-notes-menu")

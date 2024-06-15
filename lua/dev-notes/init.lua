@@ -1,7 +1,29 @@
 local Dev = require("dev-notes.dev")
+local Config = require("dev-notes.config")
 local log = Dev.log
 
 local DevNotes = {}
+
+local dev_notes_root =
+    vim.api.nvim_create_augroup("DEV_NOTES_ROOT", { clear = true })
+
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = "devnotes",
+    group = dev_notes_root,
+    callback = function()
+        log.trace("FileType devnotes(): in init.lua")
+
+        if not Config.get().use_default_augroup_mappings then
+            return
+        end
+
+        vim.keymap.set(
+            "n",
+            "<esc>",
+            ':lua require"dev-notes.ui".toggle_quick_note()<CR>'
+        )
+    end,
+})
 
 ---Configures the plugin
 ---@param config? DevNotesConfig User configuration
@@ -9,11 +31,11 @@ local DevNotes = {}
 ---@see dev-notes.config
 ---@usage [[
 ----- Use default configuration
----require('Comment').setup({})
+---require('dev-notes').setup({})
 ---
 ----- or with custom configuration
----require('Comment').setup({
----   local_save = true
+---require('dev-notes').setup({
+---   use_git_for_versioning = false,
 ---})
 ---@usage ]]
 function DevNotes.setup(config)
@@ -27,15 +49,14 @@ function DevNotes.setup(config)
             "<A-n>",
             ':lua require"dev-notes.ui".toggle_quick_note()<CR>'
         )
+        vim.keymap.set(
+            "n",
+            "<A-S-n>",
+            ':lua require"dev-notes.ui".toggle_quick_note_test()<CR>'
+        )
     end
 
     log.debug("setup() -> config:", vim.inspect(config))
-
-    -- setup initial files
-
-
-
-
 
     return config
 end
