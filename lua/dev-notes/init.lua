@@ -49,11 +49,6 @@ function DevNotes.setup(config)
             "<A-n>",
             ':lua require"dev-notes.ui".toggle_quick_note()<CR>'
         )
-        vim.keymap.set(
-            "n",
-            "<A-S-n>",
-            ':lua require"dev-notes.ui".toggle_quick_note_test()<CR>'
-        )
     end
 
     log.debug("setup() -> config:", vim.inspect(config))
