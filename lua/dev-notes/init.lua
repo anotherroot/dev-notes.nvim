@@ -20,7 +20,13 @@ vim.api.nvim_create_autocmd("FileType", {
         vim.keymap.set(
             "n",
             "<esc>",
-            ':lua require"dev-notes.ui".toggle_quick_note()<CR>'
+            ':lua require"dev-notes.ui".toggle_quick_note()<CR>',
+            {
+                buffer = true,
+                noremap = true,
+                silent = true,
+                desc = "Exit dev-notes note",
+            }
         )
     end,
 })
