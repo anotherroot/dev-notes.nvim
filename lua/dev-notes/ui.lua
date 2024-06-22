@@ -9,22 +9,16 @@ local UI = {}
 local win_id = nil
 local buf_id = nil
 
-local function close_menu(force_save)
-    log.trace("close_menu(force_save): ", vim.inspect(force_save))
-    if Config.get().quick_notes.save_on_exit or force_save then
-        UI.on_quick_notes_save()
-    end
-    if win_id == nil then
-        return
-    end
+local current_note_directory = nil
+local current_note_name = nil
 
-    vim.api.nvim_win_close(win_id, true)
+local pickers = require("telescope.pickers")
+local finders = require("telescope.finders")
+local conf = require("telescope.config").values
+local actions = require("telescope.actions")
+local action_state = require("telescope.actions.state")
 
-    win_id = nil
-    buf_id = nil
-end
-
-local function create_window()
+local function create_window(title)
     log.trace("create_window()")
 
     local config = Config.get().quick_notes
@@ -36,7 +30,7 @@ local function create_window()
     local bufnr = vim.api.nvim_create_buf(false, false)
 
     local new_win_id, win = popup.create(bufnr, {
-        title = "Quick Notes",
+        title = title,
         highlight = "DevNotesWindow",
         line = math.floor(((vim.o.lines - height) / 2) - 1),
         col = math.floor((vim.o.columns - width) / 2),
@@ -66,19 +60,66 @@ local function get_quick_note_lines()
     return lines
 end
 
-function UI.toggle_quick_note()
-    log.trace("ui.toggle_quick_note()")
-    if win_id ~= nil and vim.api.nvim_win_is_valid(win_id) then
-        close_menu()
+function UI.close_note(opts)
+    opts = opts or {}
+    log.trace("ui.close_menu(opts): ", vim.inspect(opts))
+    if Config.get().quick_notes.save_on_exit or opts.force_save then
+        UI.save_open_note()
+    end
+    if win_id == nil then
         return
     end
 
-    local win_info = create_window()
+    vim.api.nvim_win_close(win_id, true)
+
+    win_id = nil
+    buf_id = nil
+    current_note_directory = nil
+    current_note_name = nil
+end
+
+function UI.toggle_quick_note()
+    log.trace("ui.toggle_quick_note()")
+    if win_id ~= nil and vim.api.nvim_win_is_valid(win_id) then
+        UI.close_note()
+        return
+    end
+
+    UI.open_note()
+
+    log.trace("toggle_quick_note(): End")
+end
+
+function UI.save_open_note()
+    log.trace("ui.save_open_note()")
+    assert(win_id ~= nil, "win_id must not be nil")
+    Note.set(
+        current_note_directory,
+        current_note_name,
+        get_quick_note_lines(),
+        vim.api.nvim_win_get_cursor(win_id)
+    )
+end
+
+function UI.open_note(opts)
+    log.trace("ui.open_note(opts):", vim.inspect(opts))
+    opts = opts or {}
+
+    if opts.name == nil then
+        opts.name = "Quick notes"
+    end
+    if opts.pwd == nil then
+        opts.pwd = vim.loop.cwd()
+    end
+
+    local win_info = create_window(opts.name)
 
     win_id = win_info.win_id
     buf_id = win_info.bufnr
+    current_note_directory = opts.pwd
+    current_note_name = opts.name
 
-    local note_data = Note.get(vim.loop.cwd())
+    local note_data = Note.get(opts.pwd, opts.name)
     local contents = note_data.lines
 
     local cursor = note_data.cursor
@@ -96,14 +137,14 @@ function UI.toggle_quick_note()
 
     vim.cmd(
         string.format(
-            "autocmd BufWriteCmd <buffer=%s> lua require('dev-notes.ui').on_quick_notes_save()",
+            "autocmd BufWriteCmd <buffer=%s> lua require('dev-notes.ui').save_open_note()",
             buf_id
         )
     )
     if Config.get().quick_notes.save_on_edit then
         vim.cmd(
             string.format(
-                "autocmd TextChanged,TextChangedI <buffer=%s> lua require('dev-notes.ui').on_quick_notes_save()",
+                "autocmd TextChanged,TextChangedI <buffer=%s> lua require('dev-notes.ui').save_open_note()",
                 buf_id
             )
         )
@@ -115,19 +156,98 @@ function UI.toggle_quick_note()
         )
     )
     vim.cmd(
-        "autocmd BufLeave <buffer> ++nested ++once silent lua require('dev-notes.ui').toggle_quick_note()"
+        "autocmd BufLeave <buffer> ++nested ++once silent lua require('dev-notes.ui').save_open_note()"
     )
-
-    log.trace("toggle_quick_note(): End")
 end
 
-function UI.on_quick_notes_save()
-    log.trace("ui.on_quick_notes_save()")
-    assert(win_id ~= nil, "win_id must not be nil")
+function UI.open_note_picker(opts)
+    log.trace("ui.open_note_picker(opts):", vim.inspect(opts))
+    opts = opts or {}
 
-    local pwd = vim.loop.cwd()
+    if opts.from_all_projects == nil then
+        opts.from_all_projects = false
+    end
 
-    Note.set(pwd, get_quick_note_lines(), vim.api.nvim_win_get_cursor(win_id))
+    if opts.only_quick_notes == nil then
+        opts.only_quick_notes = false
+    end
+
+    local project_notes = Note.get_notes()
+
+    local notes = {}
+
+    if opts.from_all_projects then
+        for path, project in pairs(project_notes) do
+            local files = project.files
+            if files ~= nil then
+                for name, note in pairs(files) do
+                    table.insert(
+                        notes,
+                        { path = path, file = note.file, name = name }
+                    )
+                end
+            end
+        end
+    else
+        local path = vim.loop.cwd()
+        local project = project_notes[path]
+        local files = project.files
+        if files ~= nil then
+            for name, note in pairs(files) do
+                table.insert(
+                    notes,
+                    { path = path, file = note.file, name = name }
+                )
+            end
+        end
+    end
+
+    local notes_directory = Note.get_notes_directory()
+
+    pickers
+        .new(opts, {
+            prompt_title = "Pick a note from all projects",
+            finder = finders.new_table({
+                results = notes,
+                entry_maker = function(note)
+                    local display = string.format(
+                        "%s - %s",
+                        note.path:gsub("/home/tilen", "~"),
+                        note.name
+                    )
+                    return {
+                        value = note,
+                        display = display,
+                        ordinal = display,
+                        path = string.format(
+                            "%s/%s",
+                            notes_directory,
+                            note.file
+                        ),
+                    }
+                end,
+            }),
+            previewer = conf.grep_previewer(opts),
+            sorter = conf.generic_sorter(opts),
+            attach_mappings = function(prompt_bufnr, map)
+                actions.select_default:replace(function()
+                    actions.close(prompt_bufnr)
+                    local selection = action_state.get_selected_entry()
+                    local line = action_state.get_current_line()
+
+                    if selection ~= nil then
+                        UI.open_note({
+                            pwd = selection.value.path,
+                            name = selection.value.name,
+                        })
+                    elseif line:gsub("%s+", "") ~= "" then
+                        UI.open_note({ name = line })
+                    end
+                end)
+                return true
+            end,
+        })
+        :find()
 end
 
 return UI

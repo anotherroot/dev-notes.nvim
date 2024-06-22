@@ -10,4 +10,12 @@ function Util.uuid()
     end) .. os.time()
 end
 
+function Util.get_keys(t)
+    local keys = {}
+    for key, _ in pairs(t) do
+        table.insert(keys, key)
+    end
+    return keys
+end
+
 return Util

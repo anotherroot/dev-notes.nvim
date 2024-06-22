@@ -1,15 +1,16 @@
 local Dev = require("dev-notes.dev")
+local UI = require("dev-notes.ui")
 local Config = require("dev-notes.config")
 local log = Dev.log
 
 local DevNotes = {}
 
-local dev_notes_root =
+local dev_notes_group =
     vim.api.nvim_create_augroup("DEV_NOTES_ROOT", { clear = true })
 
 vim.api.nvim_create_autocmd("FileType", {
     pattern = "devnotes",
-    group = dev_notes_root,
+    group = dev_notes_group,
     callback = function()
         log.trace("FileType devnotes(): in init.lua")
 
@@ -17,17 +18,22 @@ vim.api.nvim_create_autocmd("FileType", {
             return
         end
 
-        vim.keymap.set(
-            "n",
-            "<esc>",
-            ':lua require"dev-notes.ui".toggle_quick_note()<CR>',
-            {
-                buffer = true,
-                noremap = true,
-                silent = true,
-                desc = "Exit dev-notes note",
-            }
-        )
+        vim.keymap.set("n", "<esc>", function()
+            UI.toggle_quick_note()
+        end, {
+            buffer = true,
+            noremap = true,
+            silent = true,
+            desc = "Exit dev-notes note",
+        })
+        vim.keymap.set({ "i", "n" }, "<C-c>", function()
+            UI.toggle_quick_note()
+        end, {
+            buffer = true,
+            noremap = true,
+            silent = true,
+            desc = "Exit dev-notes note",
+        })
     end,
 })
 
@@ -50,11 +56,15 @@ function DevNotes.setup(config)
     config = require("dev-notes.config").set(config).get()
 
     if config.use_default_mappings then
-        vim.keymap.set(
-            "n",
-            "<A-n>",
-            ':lua require"dev-notes.ui".toggle_quick_note()<CR>'
-        )
+        vim.keymap.set("n", "<A-n>", function()
+            UI.toggle_quick_note()
+        end, { desc = "Toggle quick note of current proejct" })
+        vim.keymap.set("n", "<leader>pn", function()
+            UI.open_note_picker()
+        end, { desc = "Open note picker for current project" })
+        vim.keymap.set("n", "<leader>apn", function()
+            UI.open_note_picker({ from_all_projects = true })
+        end, { desc = "Open note picker for all project notes" })
     end
 
     log.debug("setup() -> config:", vim.inspect(config))

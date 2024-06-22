@@ -32,6 +32,10 @@ local function write_file(file, lines)
     vim.fn.writefile(lines, file_path)
 end
 
+function Note.get_notes_directory()
+    return data_path
+end
+
 function Note.get_notes()
     log.trace("note.get_notes()")
 
@@ -46,13 +50,15 @@ function Note.get_notes()
     return project_notes
 end
 
-function Note.get(pwd)
+function Note.get(pwd, name)
     log.trace("note.get()")
 
     local notes = Note.get_notes()
 
-    if notes[pwd] then
-        return { lines = read_file(notes[pwd].file), cursor = notes[pwd].cursor }
+    if notes[pwd] and notes[pwd].files and notes[pwd].files[name] then
+        local file = notes[pwd].files[name].file
+        local cursor = notes[pwd].files[name].cursor
+        return { lines = read_file(file), cursor = cursor }
     else
         return { lines = {}, cursor = { 0, 0 } }
     end
@@ -71,16 +77,28 @@ local function git_commit()
     end
 end
 
-function Note.set(pwd, lines, cursor)
-    log.trace("note.set()")
+function Note.set(pwd, name, lines, cursor)
+    log.trace("note.set(pwd, name, lines, cursor):", pwd, name, lines, cursor)
+
+    local files = nil
+    if project_notes[pwd] then
+        files = project_notes[pwd].files
+    end
+    files = files or {}
 
     local file_name = Util.uuid()
-    if project_notes[pwd] then
-        file_name = project_notes[pwd].file
+    if files[name] then
+        file_name = files[name].file
     end
+
     write_file(file_name, lines)
 
-    project_notes[pwd] = { file = file_name, cursor = cursor }
+    files[name] = {
+        file = file_name,
+        cursor = cursor,
+    }
+
+    project_notes[pwd] = { files = files }
 
     Path:new(notes_file):write(vim.fn.json_encode(project_notes), "w")
 
