@@ -1,8 +1,14 @@
 local popup = require("plenary.popup")
+local pickers = require("telescope.pickers")
+local finders = require("telescope.finders")
+local conf = require("telescope.config").values
+local actions = require("telescope.actions")
+local action_state = require("telescope.actions.state")
 
 local log = require("dev-notes.dev").log
 local Config = require("dev-notes.config")
 local Note = require("dev-notes.note")
+local Util = require("dev-notes.util")
 
 local UI = {}
 
@@ -11,12 +17,6 @@ local buf_id = nil
 
 local current_note_directory = nil
 local current_note_name = nil
-
-local pickers = require("telescope.pickers")
-local finders = require("telescope.finders")
-local conf = require("telescope.config").values
-local actions = require("telescope.actions")
-local action_state = require("telescope.actions.state")
 
 local function create_window(title)
     log.trace("create_window()")
@@ -104,6 +104,7 @@ end
 function UI.open_note(opts)
     log.trace("ui.open_note(opts):", vim.inspect(opts))
     opts = opts or {}
+    local config = Config.get()
 
     if opts.name == nil then
         opts.name = "Quick notes"
@@ -112,7 +113,17 @@ function UI.open_note(opts)
         opts.pwd = vim.loop.cwd()
     end
 
-    local win_info = create_window(opts.name)
+    local window_title = opts.name
+
+    if opts.pwd ~= vim.loop.cwd() then
+        window_title = string.format(
+            "%s - %s",
+            Util.gsub(opts.pwd, config.home_dir, "~"),
+            opts.name
+        )
+    end
+
+    local win_info = create_window(window_title)
 
     win_id = win_info.win_id
     buf_id = win_info.bufnr
@@ -163,6 +174,7 @@ end
 function UI.open_note_picker(opts)
     log.trace("ui.open_note_picker(opts):", vim.inspect(opts))
     opts = opts or {}
+    local config = Config.get()
 
     if opts.from_all_projects == nil then
         opts.from_all_projects = false
@@ -212,7 +224,7 @@ function UI.open_note_picker(opts)
                 entry_maker = function(note)
                     local display = string.format(
                         "%s - %s",
-                        note.path:gsub("/home/tilen", "~"),
+                        Util.gsub(note.path, config.home_dir, "~"),
                         note.name
                     )
                     return {

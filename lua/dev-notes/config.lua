@@ -1,5 +1,9 @@
 ---Plugin's configuration
 ---@class DevNotesConfig
+---If used shortens any usage of your
+---home directory to ~
+---(default: nil)
+---@field home_dir string | nil
 ---Controls whether to use default
 ---mappings (default: true)
 ---@field use_default_mappings boolean
@@ -43,6 +47,7 @@ local log = require("dev-notes.dev").log
 ---@field config DevNotesConfig
 local Config = {
     config = {
+        home_dir = nil,
         use_default_mappings = true,
         use_default_augroup_mappings = true,
         use_git_for_versioning = true,

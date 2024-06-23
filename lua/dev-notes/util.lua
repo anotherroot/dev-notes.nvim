@@ -18,4 +18,11 @@ function Util.get_keys(t)
     return keys
 end
 
+function Util.gsub(str, pat, val)
+    if pat == nil then
+        return str
+    end
+    return str:gsub(pat, val)
+end
+
 return Util
