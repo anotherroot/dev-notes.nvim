@@ -46,28 +46,28 @@ local log = require("dev-notes.dev").log
 ---@class RootConfig
 ---@field config DevNotesConfig
 local Config = {
-    config = {
-        home_dir = nil,
-        use_default_mappings = true,
-        use_default_augroup_mappings = true,
-        use_git_for_versioning = true,
-        quick_notes = {
-            width = 80,
-            height = 15,
-            border_chars = {
-                "─",
-                "│",
-                "─",
-                "│",
-                "╭",
-                "╮",
-                "╯",
-                "╰",
-            },
-            save_on_edit = false,
-            save_on_exit = true,
-        },
+  config = {
+    home_dir = nil,
+    use_default_mappings = true,
+    use_default_augroup_mappings = true,
+    use_git_for_versioning = true,
+    quick_notes = {
+      width = 80,
+      height = 15,
+      border_chars = {
+        "─",
+        "│",
+        "─",
+        "│",
+        "╭",
+        "╮",
+        "╯",
+        "╰",
+      },
+      save_on_edit = false,
+      save_on_exit = true,
     },
+  },
 }
 
 ---@package
@@ -77,20 +77,20 @@ local Config = {
 ---@see comment.usage.setup
 ---@usage `require('dev-notes.config').set({config})`
 function Config.set(config)
-    log.trace("config.set(config):", config)
+  log.trace("config.set(config):", config)
 
-    if config then
-        Config.config = vim.tbl_deep_extend("force", Config.config, config)
-    end
-    return Config
+  if config then
+    Config.config = vim.tbl_deep_extend("force", Config.config, config)
+  end
+  return Config
 end
 
 ---Get the config
 ---@return DevNotesConfig
 ---@usage `require('dev-notes.config').get()`
 function Config.get()
-    log.trace("config.get()")
-    return Config.config
+  log.trace("config.get()")
+  return Config.config
 end
 
 return Config
