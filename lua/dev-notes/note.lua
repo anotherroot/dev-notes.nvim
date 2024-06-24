@@ -94,6 +94,49 @@ local function git_commit()
   end
 end
 
+function Note.rename(pwd, old_name, new_name)
+  log.trace(
+    "note.rename(pwd,old_name,new_name):",
+    vim.inspect(pwd),
+    vim.inspect(old_name),
+    vim.inspect(new_name)
+  )
+  local project = Note.get_notes()[pwd]
+
+  assert(project ~= nil, string.format("project at %s doesn'e exist!", pwd))
+
+  local old_note = project.files[old_name]
+
+  assert(
+    old_note ~= nil,
+    string.format("Note named %s doesn't exist!", old_note)
+  )
+
+  if project.files[new_name] ~= nil then
+    log.debug(string.format("Note with name '%s' already exists!", new_name))
+    return nil
+  end
+
+  project.files[new_name] = old_note
+  project.files[old_name] = nil
+
+  if
+    project.last_note
+    and project.last_note.name
+    and project.last_note.name == old_name
+  then
+    project_notes.last_note.name = new_name
+  end
+
+  project_notes[pwd] = project
+
+  Path:new(notes_file):write(vim.fn.json_encode(project_notes), "w")
+
+  git_commit()
+
+  return new_name
+end
+
 function Note.set(pwd, name, lines, cursor)
   log.trace("note.set(pwd, name, lines, cursor):", pwd, name, lines, cursor)
 

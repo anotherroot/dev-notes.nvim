@@ -17,6 +17,7 @@ local buf_id = nil
 
 local current_note_directory = nil
 local current_note_name = nil
+local current_window_type = nil
 
 local function create_split_window(title, type)
   log.trace(
@@ -81,12 +82,14 @@ end
 
 function UI.close_note(opts)
   opts = opts or {}
+  if win_id == nil or not vim.api.nvim_win_is_valid(win_id) then
+    print("No note currently open to close.")
+    return
+  end
+
   log.trace("ui.close_menu(opts): ", vim.inspect(opts))
   if Config.get().quick_notes.save_on_exit or opts.force_save then
     UI.save_open_note()
-  end
-  if win_id == nil then
-    return
   end
 
   vim.api.nvim_win_close(win_id, true)
@@ -95,6 +98,7 @@ function UI.close_note(opts)
   buf_id = nil
   current_note_directory = nil
   current_note_name = nil
+  current_window_type = nil
 end
 
 function UI.toggle_quick_note(opts)
@@ -129,6 +133,37 @@ local function create_window(title, type)
   end
 end
 
+function UI.rename_note(opts)
+  log.trace("ui.rename_note(opts):", vim.inspect(opts))
+
+  if win_id == nil or not vim.api.nvim_win_is_valid(win_id) then
+    print("No note currently open.")
+    return
+  end
+
+  opts = opts or {}
+
+  vim.ui.input({ prompt = "New name: " }, function(input)
+    input = input:gsub("%s+", "")
+    if input == "" then
+      return
+    end
+
+    local pwd = current_note_directory
+    local type = current_window_type
+    if Note.rename(current_note_directory, current_note_name, input) then
+      current_note_name = input
+      print(string.format("Renamed note to '%s'.", input))
+      print("closing note")
+      UI.close_note()
+      print("opening note")
+      UI.open_note({ pwd = pwd, name = input, win_type = type })
+    else
+      print("Failed to rename note.")
+    end
+  end)
+end
+
 function UI.open_note(opts)
   log.trace("ui.open_note(opts):", vim.inspect(opts))
 
@@ -140,8 +175,9 @@ function UI.open_note(opts)
   local config = Config.get()
 
   if opts.name == nil then
-    opts.name = "Quick notes"
+    opts.name = config.quick_notes_name
   end
+
   if opts.pwd == nil then
     opts.pwd = vim.loop.cwd()
   end
@@ -178,6 +214,7 @@ function UI.open_note(opts)
   buf_id = win_info.bufnr
   current_note_directory = opts.pwd
   current_note_name = opts.name
+  current_window_type = opts.win_type
 
   local note_data = Note.get(opts.pwd, opts.name)
   local contents = note_data.lines
