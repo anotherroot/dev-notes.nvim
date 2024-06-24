@@ -7,6 +7,13 @@
 ---Controls whether to use default
 ---mappings (default: true)
 ---@field use_default_mappings boolean
+---Controls whether quick notes will open
+---as the last_note note if it was indeed
+---the last note opened (default: false)
+---@field quick_notes_can_also_be_last_note boolean
+---Controls the name of the default note of
+---every project (default: "Quick notes")
+---@field quick_notes_name string
 ---Controls whether to use default
 ---augroup mappings (default: true)
 ---@field use_default_augroup_mappings boolean
@@ -49,6 +56,8 @@ local Config = {
   config = {
     home_dir = nil,
     use_default_mappings = true,
+    quick_notes_can_also_be_last_note = false,
+    quick_notes_name = "Quick notes",
     use_default_augroup_mappings = true,
     use_git_for_versioning = true,
     quick_notes = {

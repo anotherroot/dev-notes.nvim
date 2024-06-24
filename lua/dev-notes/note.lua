@@ -97,25 +97,32 @@ end
 function Note.set(pwd, name, lines, cursor)
   log.trace("note.set(pwd, name, lines, cursor):", pwd, name, lines, cursor)
 
-  local files = nil
+  local config = Config.get()
+
+  local project = nil
   if project_notes[pwd] then
-    files = project_notes[pwd].files
+    project = project_notes[pwd]
   end
-  files = files or {}
+  project = project or { files = {}, last_note = { name = nil } }
 
   local file_name = Util.uuid()
-  if files[name] then
-    file_name = files[name].file
+  if project.files[name] then
+    file_name = project.files[name].file
   end
 
   write_file(file_name, lines)
 
-  files[name] = {
+  project.files[name] = {
     file = file_name,
     cursor = cursor,
   }
+  if
+    name ~= config.quick_notes_name or config.quick_notes_can_also_be_last_note
+  then
+    project.last_note.name = name
+  end
 
-  project_notes[pwd] = { files = files, last_note = { name = name } }
+  project_notes[pwd] = project
 
   Path:new(notes_file):write(vim.fn.json_encode(project_notes), "w")
 
