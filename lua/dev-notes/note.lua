@@ -64,6 +64,23 @@ function Note.get(pwd, name)
   end
 end
 
+function Note.get_last_note_name(pwd)
+  log.trace("note.get_last_note_name(pwd):", vim.inspect(pwd))
+
+  local notes = Note.get_notes()
+
+  if
+    notes[pwd]
+    and notes[pwd].files
+    and notes[pwd].last_note
+    and notes[pwd].last_note.name
+  then
+    return notes[pwd].last_note.name
+  else
+    return nil
+  end
+end
+
 local function git_commit()
   if Config.get().use_git_for_versioning then
     local _ = vim.api.nvim_exec2(
@@ -98,7 +115,7 @@ function Note.set(pwd, name, lines, cursor)
     cursor = cursor,
   }
 
-  project_notes[pwd] = { files = files }
+  project_notes[pwd] = { files = files, last_note = { name = name } }
 
   Path:new(notes_file):write(vim.fn.json_encode(project_notes), "w")
 

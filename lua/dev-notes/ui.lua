@@ -150,6 +150,18 @@ function UI.open_note(opts)
     opts.win_type = "popup"
   end
 
+  if opts.open_last == nil then
+    opts.open_last = false
+  end
+
+  if opts.open_last == true then
+    opts.name = Note.get_last_note_name(opts.pwd)
+    if opts.name == nil then
+      print("There is not last note.")
+      return
+    end
+  end
+
   local window_title = opts.name
 
   if opts.pwd ~= vim.loop.cwd() then
