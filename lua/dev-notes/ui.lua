@@ -144,7 +144,7 @@ function UI.rename_note(opts)
   opts = opts or {}
 
   vim.ui.input({ prompt = "New name: " }, function(input)
-    input = input:gsub("%s+", "")
+    input = Util.trim(input)
     if input == "" then
       return
     end
@@ -332,7 +332,7 @@ function UI.open_note_picker(opts)
               pwd = selection.value.path,
               name = selection.value.name,
             })
-          elseif line:gsub("%s+", "") ~= "" then
+          elseif Util.trim(line) ~= "" then
             UI.open_note({ name = line })
           end
         end)
@@ -348,7 +348,7 @@ function UI.open_note_picker(opts)
               name = selection.value.name,
               win_type = "split",
             })
-          elseif line:gsub("%s+", "") ~= "" then
+          elseif Util.trim(line) ~= "" then
             UI.open_note({
               name = line,
               win_type = "split",
@@ -366,7 +366,7 @@ function UI.open_note_picker(opts)
               name = selection.value.name,
               win_type = "vsplit",
             })
-          elseif line:gsub("%s+", "") ~= "" then
+          elseif Util.trim(line) ~= "" then
             UI.open_note({
               name = line,
               win_type = "vsplit",
@@ -376,7 +376,7 @@ function UI.open_note_picker(opts)
 
         vim.keymap.set({ "i", "n" }, "<A-n>", function()
           local line = action_state.get_current_line()
-          if line:gsub("%s+", "") ~= "" then
+          if Util.trim(line) ~= "" then
             UI.open_note({ name = line })
           end
         end, {

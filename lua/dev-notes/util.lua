@@ -25,4 +25,8 @@ function Util.gsub(str, pat, val)
   return str:gsub(pat, val)
 end
 
+function Util.trim(str)
+  return str:gsub("^%s+", ""):gsub("%s+$", "")
+end
+
 return Util
