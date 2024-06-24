@@ -168,7 +168,7 @@ function UI.open_note(opts)
   log.trace("ui.open_note(opts):", vim.inspect(opts))
 
   if win_id ~= nil and vim.api.nvim_win_is_valid(win_id) then
-    return
+    UI.close_note()
   end
 
   opts = opts or {}
