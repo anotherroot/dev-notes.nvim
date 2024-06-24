@@ -18,6 +18,8 @@ local buf_id = nil
 local current_note_directory = nil
 local current_note_name = nil
 local current_window_type = nil
+local deleting = false
+local saved = false
 
 local function create_split_window(title, type)
   log.trace(
@@ -87,9 +89,14 @@ function UI.close_note(opts)
     return
   end
 
+  if opts.force_save == nil then
+    opts.force_save = false
+  end
+
   log.trace("ui.close_menu(opts): ", vim.inspect(opts))
   if Config.get().quick_notes.save_on_exit or opts.force_save then
     UI.save_open_note()
+    saved = true
   end
 
   vim.api.nvim_win_close(win_id, true)
@@ -99,6 +106,7 @@ function UI.close_note(opts)
   current_note_directory = nil
   current_note_name = nil
   current_window_type = nil
+  deleting = false
 end
 
 function UI.toggle_quick_note(opts)
@@ -116,6 +124,11 @@ end
 function UI.save_open_note()
   log.trace("ui.save_open_note()")
   assert(win_id ~= nil, "win_id must not be nil")
+
+  if deleting == true or saved == true then
+    return
+  end
+
   Note.set(
     current_note_directory,
     current_note_name,
@@ -160,6 +173,25 @@ function UI.rename_note(opts)
       print("Failed to rename note.")
     end
   end)
+end
+
+function UI.delete_note(opts)
+  log.trace("ui.delete_note(opts):", vim.inspect(opts))
+
+  if win_id == nil or not vim.api.nvim_win_is_valid(win_id) then
+    print("No note currently open.")
+    return
+  end
+
+  opts = opts or {}
+
+  Note.delete(current_note_directory, current_note_name)
+
+  local name = current_note_name
+
+  deleting = true
+  UI.close_note()
+  print(string.format("Deleted file '%s'.", name))
 end
 
 function UI.open_note(opts)
@@ -213,6 +245,7 @@ function UI.open_note(opts)
   current_note_directory = opts.pwd
   current_note_name = opts.name
   current_window_type = opts.win_type
+  saved = false
 
   local note_data = Note.get(opts.pwd, opts.name)
   local contents = note_data.lines

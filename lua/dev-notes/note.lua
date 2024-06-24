@@ -32,6 +32,26 @@ local function write_file(file, lines)
   vim.fn.writefile(lines, file_path)
 end
 
+local function git_commit()
+  log.trace("git_commit()")
+  if Config.get().use_git_for_versioning then
+    local _ = vim.api.nvim_exec2(
+      string.format("!git -C %s add .", data_path),
+      { output = true }
+    )
+    local _ = vim.api.nvim_exec2(
+      string.format("!git -C %s commit -m 'automated commit'", data_path),
+      { output = true }
+    )
+  end
+end
+
+local function save_projects()
+  log.trace("save_projects():", vim.inspect(project_notes))
+  Path:new(notes_file):write(vim.fn.json_encode(project_notes), "w")
+  git_commit()
+end
+
 function Note.get_notes_directory()
   return data_path
 end
@@ -81,19 +101,6 @@ function Note.get_last_note_name(pwd)
   end
 end
 
-local function git_commit()
-  if Config.get().use_git_for_versioning then
-    local _ = vim.api.nvim_exec2(
-      string.format("!git -C %s add .", data_path),
-      { output = true }
-    )
-    local _ = vim.api.nvim_exec2(
-      string.format("!git -C %s commit -m 'automated commit'", data_path),
-      { output = true }
-    )
-  end
-end
-
 function Note.rename(pwd, old_name, new_name)
   log.trace(
     "note.rename(pwd,old_name,new_name):",
@@ -103,7 +110,7 @@ function Note.rename(pwd, old_name, new_name)
   )
   local project = Note.get_notes()[pwd]
 
-  assert(project ~= nil, string.format("project at %s doesn'e exist!", pwd))
+  assert(project ~= nil, string.format("Project '%s' doesn'e exist!", pwd))
 
   local old_note = project.files[old_name]
 
@@ -130,11 +137,40 @@ function Note.rename(pwd, old_name, new_name)
 
   project_notes[pwd] = project
 
-  Path:new(notes_file):write(vim.fn.json_encode(project_notes), "w")
-
-  git_commit()
+  save_projects()
 
   return new_name
+end
+
+function Note.delete(pwd, name)
+  log.trace("note.delete(pwd, name):", pwd, name)
+
+  local project = Note.get_notes()[pwd]
+
+  assert(project ~= nil, string.format("Project '%s' doesn't exist!", pwd))
+
+  local note = project.files[name]
+
+  assert(note ~= nil, string.format("Note named '%s' doesn't exist!", note))
+
+  project.deleted = project.deleted or {}
+
+  local deleted_id = Util.uuid()
+  project.deleted[deleted_id] = { note = note, old_name = name }
+  project.files[name] = nil
+
+  if
+    project.last_note ~= nil
+    and project.last_note.name ~= nil
+    and project.last_note.name == name
+  then
+    project.last_note.name = nil
+  end
+
+  project_notes[pwd] = project
+
+  save_projects()
+  return deleted_id
 end
 
 function Note.set(pwd, name, lines, cursor)
@@ -167,9 +203,7 @@ function Note.set(pwd, name, lines, cursor)
 
   project_notes[pwd] = project
 
-  Path:new(notes_file):write(vim.fn.json_encode(project_notes), "w")
-
-  git_commit()
+  save_projects()
 end
 
 return Note
