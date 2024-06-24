@@ -34,6 +34,14 @@ vim.api.nvim_create_autocmd("FileType", {
       silent = true,
       desc = "Exit dev-notes note",
     })
+    vim.keymap.set("n", "<leader>rn", function()
+      UI.rename_note()
+    end, {
+      buffer = true,
+      noremap = true,
+      silent = true,
+      desc = "Rename dev-notes note",
+    })
   end,
 })
 
