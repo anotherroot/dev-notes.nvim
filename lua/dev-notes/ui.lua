@@ -18,8 +18,27 @@ local buf_id = nil
 local current_note_directory = nil
 local current_note_name = nil
 
-local function create_window(title)
-  log.trace("create_window()")
+local function create_split_window(title, type)
+  log.trace(
+    "create_split_window(title):",
+    vim.inspect(title),
+    vim.inspect(type)
+  )
+
+  local bufnr = vim.api.nvim_create_buf(false, false)
+
+  vim.cmd(type)
+  local new_win_id = vim.api.nvim_get_current_win()
+  vim.api.nvim_win_set_buf(new_win_id, bufnr)
+
+  return {
+    bufnr = bufnr,
+    win_id = new_win_id,
+  }
+end
+
+local function create_popup_window(title)
+  log.trace("create_window(title):", vim.inspect(title))
 
   local config = Config.get().quick_notes
   local width = config.width or 60
@@ -78,14 +97,14 @@ function UI.close_note(opts)
   current_note_name = nil
 end
 
-function UI.toggle_quick_note()
+function UI.toggle_quick_note(opts)
   log.trace("ui.toggle_quick_note()")
   if win_id ~= nil and vim.api.nvim_win_is_valid(win_id) then
     UI.close_note()
     return
   end
 
-  UI.open_note()
+  UI.open_note(opts)
 
   log.trace("toggle_quick_note(): End")
 end
@@ -101,8 +120,22 @@ function UI.save_open_note()
   )
 end
 
+local function create_window(title, type)
+  log.trace("create_window(title,type):", vim.inspect(title), vim.inspect(type))
+  if type == "vsplit" or type == "split" then
+    return create_split_window(title, type)
+  else
+    return create_popup_window(title)
+  end
+end
+
 function UI.open_note(opts)
   log.trace("ui.open_note(opts):", vim.inspect(opts))
+
+  if win_id ~= nil and vim.api.nvim_win_is_valid(win_id) then
+    return
+  end
+
   opts = opts or {}
   local config = Config.get()
 
@@ -111,6 +144,10 @@ function UI.open_note(opts)
   end
   if opts.pwd == nil then
     opts.pwd = vim.loop.cwd()
+  end
+
+  if opts.win_type == nil then
+    opts.win_type = "popup"
   end
 
   local window_title = opts.name
@@ -123,7 +160,7 @@ function UI.open_note(opts)
     )
   end
 
-  local win_info = create_window(window_title)
+  local win_info = create_window(window_title, opts.win_type)
 
   win_id = win_info.win_id
   buf_id = win_info.bufnr
@@ -136,7 +173,7 @@ function UI.open_note(opts)
   local cursor = note_data.cursor
 
   vim.api.nvim_set_option_value("number", true, { win = win_id })
-  vim.api.nvim_buf_set_name(buf_id, "dev-notes-menu")
+  vim.api.nvim_buf_set_name(buf_id, window_title)
   vim.api.nvim_buf_set_lines(buf_id, 0, #contents, false, contents)
   vim.api.nvim_set_option_value("filetype", "devnotes", { buf = buf_id })
   vim.api.nvim_set_option_value("buftype", "acwrite", { buf = buf_id })
@@ -197,6 +234,10 @@ function UI.open_note_picker(opts)
   else
     local path = vim.loop.cwd()
     local project = project_notes[path]
+    if project == nil then
+      print("No notes to open in this project.")
+      return
+    end
     local files = project.files
     if files ~= nil then
       for name, note in pairs(files) do
@@ -206,6 +247,11 @@ function UI.open_note_picker(opts)
   end
 
   local notes_directory = Note.get_notes_directory()
+
+  if #notes == 0 then
+    print("No notes to open.")
+    return
+  end
 
   pickers
     .new(opts, {
@@ -243,6 +289,56 @@ function UI.open_note_picker(opts)
             UI.open_note({ name = line })
           end
         end)
+
+        actions.select_horizontal:replace(function()
+          actions.close(prompt_bufnr)
+          local selection = action_state.get_selected_entry()
+          local line = action_state.get_current_line()
+
+          if selection ~= nil then
+            UI.open_note({
+              pwd = selection.value.path,
+              name = selection.value.name,
+              win_type = "split",
+            })
+          elseif line:gsub("%s+", "") ~= "" then
+            UI.open_note({
+              name = line,
+              win_type = "split",
+            })
+          end
+        end)
+        actions.select_vertical:replace(function()
+          actions.close(prompt_bufnr)
+          local selection = action_state.get_selected_entry()
+          local line = action_state.get_current_line()
+
+          if selection ~= nil then
+            UI.open_note({
+              pwd = selection.value.path,
+              name = selection.value.name,
+              win_type = "vsplit",
+            })
+          elseif line:gsub("%s+", "") ~= "" then
+            UI.open_note({
+              name = line,
+              win_type = "vsplit",
+            })
+          end
+        end)
+
+        vim.keymap.set({ "i", "n" }, "<A-n>", function()
+          local line = action_state.get_current_line()
+          if line:gsub("%s+", "") ~= "" then
+            UI.open_note({ name = line })
+          end
+        end, {
+          buffer = true,
+          noremap = true,
+          silent = true,
+          desc = "Create new note",
+        })
+
         return true
       end,
     })
