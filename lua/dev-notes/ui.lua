@@ -154,9 +154,7 @@ function UI.rename_note(opts)
     if Note.rename(current_note_directory, current_note_name, input) then
       current_note_name = input
       print(string.format("Renamed note to '%s'.", input))
-      print("closing note")
       UI.close_note()
-      print("opening note")
       UI.open_note({ pwd = pwd, name = input, win_type = type })
     else
       print("Failed to rename note.")
