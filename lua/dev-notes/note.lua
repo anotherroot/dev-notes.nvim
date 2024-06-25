@@ -198,6 +198,7 @@ function Note.set(pwd, name, lines, cursor)
   if
     name ~= config.quick_notes_name or config.quick_notes_can_also_be_last_note
   then
+    project.last_note = project.last_note or {}
     project.last_note.name = name
   end
 
