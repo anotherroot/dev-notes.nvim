@@ -5,7 +5,7 @@ local conf = require("telescope.config").values
 local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
 
-local log = require("dev-notes.dev").log
+local log = require("dev-notes.dev").get_log()
 local Config = require("dev-notes.config")
 local Note = require("dev-notes.note")
 local Util = require("dev-notes.util")
@@ -335,7 +335,7 @@ function UI.open_note_picker(opts)
 
   pickers
     .new(opts, {
-      prompt_title = "Pick a note from all projects",
+      prompt_title = "Pick a note to open",
       finder = finders.new_table({
         results = notes,
         entry_maker = function(note)
@@ -407,7 +407,7 @@ function UI.open_note_picker(opts)
           end
         end)
 
-        vim.keymap.set({ "i", "n" }, "<A-n>", function()
+        vim.keymap.set("n", "<leader>q", function()
           local line = action_state.get_current_line()
           if Util.trim(line) ~= "" then
             UI.open_note({ name = line })
@@ -418,6 +418,77 @@ function UI.open_note_picker(opts)
           silent = true,
           desc = "Create new note",
         })
+
+        return true
+      end,
+    })
+    :find()
+end
+
+function UI.open_deleted_picker(opts)
+  log.trace("ui.open_note_picker(opts):", vim.inspect(opts))
+  opts = opts or {}
+  local config = Config.get()
+
+  local pwd = vim.loop.cwd()
+  local project = Note.get_notes()[pwd]
+  print(vim.inspect(project))
+
+  if project == nil then
+    print("No notes to open in this project.")
+    return
+  end
+  if project.deleted == nil then
+    print("No deleted notes to open in this project.")
+    return
+  end
+
+  local notes = {}
+  local files = project.deleted
+  for id, deleted_note in pairs(files) do
+    table.insert(notes, {
+      note = deleted_note.note,
+      old_name = deleted_note.old_name,
+      id = id,
+      date_time = deleted_note.date_time,
+    })
+  end
+
+  local notes_directory = Note.get_notes_directory()
+
+  if #notes == 0 then
+    print("No notes to open.")
+    return
+  end
+
+  pickers
+    .new(opts, {
+      prompt_title = "Pick a deleted note to restore",
+      finder = finders.new_table({
+        results = notes,
+        entry_maker = function(note)
+          local display =
+            string.format("%s -> %s", note.date_time, note.old_name)
+          return {
+            value = note,
+            display = display,
+            ordinal = display,
+            path = string.format("%s/%s", notes_directory, note.note.file),
+          }
+        end,
+      }),
+      previewer = conf.grep_previewer(opts),
+      sorter = conf.generic_sorter(opts),
+      attach_mappings = function(prompt_bufnr, map)
+        actions.select_default:replace(function()
+          -- actions.close(prompt_bufnr)
+          local selection = action_state.get_selected_entry()
+          local line = action_state.get_current_line()
+          print(vim.inspect(selection))
+        end)
+
+        actions.select_horizontal:replace(function() end)
+        actions.select_vertical:replace(function() end)
 
         return true
       end,

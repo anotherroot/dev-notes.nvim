@@ -47,7 +47,7 @@
 ---(default: true)
 ---@field save_on_exit boolean
 
-local log = require("dev-notes.dev").log
+local log = require("dev-notes.dev").get_log()
 
 ---@private
 ---@class RootConfig

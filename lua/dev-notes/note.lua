@@ -1,6 +1,6 @@
 local Path = require("plenary.path")
 
-local log = require("dev-notes.dev").log
+local log = require("dev-notes.dev").get_log()
 local Util = require("dev-notes.util")
 local Config = require("dev-notes.config")
 
@@ -156,7 +156,8 @@ function Note.delete(pwd, name)
   project.deleted = project.deleted or {}
 
   local deleted_id = Util.uuid()
-  project.deleted[deleted_id] = { note = note, old_name = name }
+  project.deleted[deleted_id] =
+    { note = note, old_name = name, date_time = os.date("%Y-%m-%d %T") }
   project.files[name] = nil
 
   if

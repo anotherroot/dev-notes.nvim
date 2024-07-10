@@ -1,7 +1,6 @@
-local Dev = require("dev-notes.dev")
 local UI = require("dev-notes.ui")
 local Config = require("dev-notes.config")
-local log = Dev.log
+local log = require("dev-notes.dev").get_log()
 
 local DevNotes = {}
 
@@ -72,7 +71,7 @@ function DevNotes.setup(config)
   config = require("dev-notes.config").set(config).get()
 
   if config.use_default_mappings then
-    vim.keymap.set("n", "<A-n>", function()
+    vim.keymap.set("n", "<leader>q", function()
       UI.toggle_quick_note()
     end, { desc = "Toggle quick note of current proejct" })
     vim.keymap.set("n", "<A-S-n>", function()
@@ -84,6 +83,9 @@ function DevNotes.setup(config)
     vim.keymap.set("n", "<leader>apn", function()
       UI.open_note_picker({ from_all_projects = true })
     end, { desc = "Open note picker for all project notes" })
+    vim.keymap.set("n", "<leader>dpn", function()
+      UI.open_deleted_picker()
+    end, { desc = "Open note picker for deleted project notes" })
   end
 
   log.debug("setup() -> config:", vim.inspect(config))
