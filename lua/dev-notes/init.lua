@@ -74,15 +74,19 @@ function DevNotes.setup(config)
     vim.keymap.set("n", "<leader>q", function()
       UI.toggle_quick_note()
     end, { desc = "Toggle quick note of current proejct" })
+
     vim.keymap.set("n", "<A-S-n>", function()
       UI.toggle_quick_note({ open_last = true })
     end, { desc = "Open quick note in vsplit window" })
+
     vim.keymap.set("n", "<leader>pn", function()
       UI.open_note_picker()
     end, { desc = "Open note picker for current project" })
+
     vim.keymap.set("n", "<leader>apn", function()
       UI.open_note_picker({ from_all_projects = true })
     end, { desc = "Open note picker for all project notes" })
+
     vim.keymap.set("n", "<leader>dpn", function()
       UI.open_deleted_picker()
     end, { desc = "Open note picker for deleted project notes" })
